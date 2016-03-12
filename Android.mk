@@ -37,8 +37,6 @@ LOCAL_AAPT_FLAGS := --auto-add-overlay
 
 LOCAL_PACKAGE_NAME := Gallery2
 
-LOCAL_CERTIFICATE := platform
-
 LOCAL_OVERRIDES_PACKAGES := Gallery Gallery3D GalleryNew3D
 
 LOCAL_PROGUARD_ENABLED := disabled
@@ -48,9 +46,7 @@ LOCAL_PROGUARD_ENABLED := disabled
 LOCAL_JNI_SHARED_LIBRARIES := libjni_eglfence libjni_filtershow_filters libjni_jpegstream
 LOCAL_SHARED_LIBRARIES += libjni_dualcamera
 
-ifeq ($(TARGET_TS_MAKEUP), true)
-  LOCAL_REQUIRED_MODULES := libts_detected_face_jni libts_face_beautify_jni
-endif
+LOCAL_REQUIRED_MODULES := libts_detected_face_jni libts_face_beautify_jni
 
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 

@@ -74,6 +74,8 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
     };
     private IntentFilter mMountFilter = new IntentFilter(Intent.ACTION_MEDIA_MOUNTED);
 
+    private static final String DEFAULT_PRINT_JOB_NAME = "print job";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -366,23 +368,35 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
         if (uri == null) {
             return;
         }
-        String path = ImageLoader.getLocalPathFromUri(this, uri);
-        if (path != null) {
-            path = getLastPathSegment(path);
-        } else {
-            path = uri.getLastPathSegment();
+        String printJobName = getLastPathSegment(uri);
+        if (printJobName == null) {
+            printJobName = DEFAULT_PRINT_JOB_NAME;
         }
         PrintHelper printer = new PrintHelper(this);
         try {
-            printer.printBitmap(path, uri);
+            printer.printBitmap(printJobName, uri);
         } catch (FileNotFoundException fnfe) {
             Log.e(TAG, "Error printing an image", fnfe);
         }
     }
 
-    private String getLastPathSegment(String path) {
-        if (path == null) return null;
-        Uri localUri = Uri.parse(path);
+    private String getLastPathSegment(Uri uri) {
+        if (uri == null) return null;
+        String path = null;
+        try {
+            path = ImageLoader.getLocalPathFromUri(this, uri);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+
+        Uri localUri;
+        if (path != null) {
+            localUri = Uri.parse(path);
+        } else {
+            path = uri.getPath();
+            localUri = uri;
+        }
+
         String lastPathSegment = localUri.getLastPathSegment();
 
         // uri.getLastPathSegment will return null if localUri contains
