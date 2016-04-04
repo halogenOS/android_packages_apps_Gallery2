@@ -206,9 +206,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     private DialogInterface mCurrentDialog = null;
     private PopupMenu mCurrentMenu = null;
     private boolean mReleaseDualCamOnDestory = true;
-    private FrameLayout mCategoryFragment;
-    private View mEffectsContainer;
-    private View mEffectsTextContainer;
     private ImageButton imgComparison;
     private String mPopUpText, mExit;
     RelativeLayout rlImageContainer;
@@ -303,6 +300,10 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         doBindService();
         getWindow().setBackgroundDrawable(new ColorDrawable(Color.GRAY));
         setContentView(R.layout.filtershow_splashscreen);
+        Window win = getWindow();
+        WindowManager.LayoutParams winParams = win.getAttributes();
+        winParams.flags |= WindowManager.LayoutParams.FLAG_FULLSCREEN;
+        win.setAttributes(winParams);
     }
 
     public boolean isShowingImageStatePanel() {
@@ -313,8 +314,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         if (findViewById(R.id.main_panel_container) == null) {
             return;
         }
-        Fragment main = getSupportFragmentManager().findFragmentByTag(
-                        MainPanel.FRAGMENT_TAG);
         MainPanel panel = new MainPanel();
         Bundle bundle = new Bundle();
         bundle.putBoolean(MainPanel.EDITOR_TAG, isComingFromEditorScreen);
@@ -376,7 +375,7 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         setContentView(R.layout.filtershow_activity);
         Resources r = getResources();
         setActionBar(false);
-        mPopUpText = r.getString(R.string.save_and_exit).toUpperCase(
+        mPopUpText = r.getString(R.string.discard).toUpperCase(
                 Locale.getDefault());
         mExit = r.getString(R.string.exit).toUpperCase(Locale.getDefault());
         int marginTop = r.getDimensionPixelSize(R.dimen.compare_margin_top);
@@ -449,9 +448,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
             if (mMenu != null) {
                 mMenu.clear();
             }
-            final Fragment main = getSupportFragmentManager().findFragmentByTag(
-                    MainPanel.FRAGMENT_TAG);
-
             actionBar.setCustomView(R.layout.filtershow_actionbar_new);
             mCancelButton = actionBar.getCustomView().findViewById(
                     R.id.imgCancel);
@@ -459,8 +455,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
             mCancelButton.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    MainPanel mainPanel = (MainPanel) main;
-                    mainPanel.toggleEffectsTrayVisibility(true);
                     setActionBar(false);
                     HistoryManager adapter = mMasterImage.getHistory();
                     int position = adapter.undoCurrentFilter();
@@ -474,15 +468,12 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
                 @Override
                 public void onClick(View view) {
                     // saveImage();
-                    MainPanel mainPanel = (MainPanel) main;
-                    mainPanel.toggleEffectsTrayVisibility(true);
                     setActionBar(false);
                     HistoryManager adapter = mMasterImage
                             .getHistory();
                     adapter.resetActiveFilter();
                 }
             });
-            isEffectClicked = false;
         }
 
     }
@@ -539,18 +530,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         int position = adapter.undo();
         masterImage.onHistoryItemClick(position);
         invalidateViews();
-    }
-
-    private void toggleEffectsTrayVisibility(boolean isEffectTrayEnabled) {
-        if (isEffectTrayEnabled) {
-            mCategoryFragment.setVisibility(View.VISIBLE);
-            mEffectsContainer.setVisibility(View.GONE);
-            mEffectsTextContainer.setVisibility(View.GONE);
-        } else {
-            mCategoryFragment.setVisibility(View.GONE);
-            mEffectsContainer.setVisibility(View.VISIBLE);
-            mEffectsTextContainer.setVisibility(View.VISIBLE);
-        }
     }
 
     public void adjustCompareButton(boolean scaled) {
@@ -1174,7 +1153,7 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
 
         public LoadBitmapTask() {
             mBitmapSize = getScreenImageSize();
-            Log.d(LOGTAG, "FilterShowActivity.LoadBtimapTask(): mBitmapSize is " + mBitmapSize);
+            Log.d(LOGTAG, "FilterShowActivity.LoadBitmapTask(): mBitmapSize is " + mBitmapSize);
         }
 
         @Override
@@ -1218,8 +1197,8 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
                 return;
             }
 
-            if (null == CachingPipeline.getRenderScriptContext()){
-                Log.v(LOGTAG,"RenderScript context destroyed during load");
+            if (null == CachingPipeline.getRenderScriptContext()) {
+                Log.v(LOGTAG, "RenderScript context destroyed during load");
                 return;
             }
             final View imageShow = findViewById(R.id.imageShow);
@@ -1260,7 +1239,7 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
 
             MasterImage.getImage().resetGeometryImages(true);
 
-            if (mAction == TINY_PLANET_ACTION) {
+            if (mAction.equals(TINY_PLANET_ACTION)) {
                 showRepresentation(mCategoryFiltersAdapter.getTinyPlanet());
             }
             mHiResBitmapTask = new LoadHighresBitmapTask();
@@ -1429,7 +1408,7 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
         if (mShareActionProvider != null) {
             mShareActionProvider.setOnShareTargetSelectedListener(this);
         }
-        if(SimpleMakeupImageFilter.HAS_TS_MAKEUP) {
+        if (SimpleMakeupImageFilter.HAS_TS_MAKEUP) {
             MakeupEngine.getMakeupObj();
         }
 
@@ -1741,72 +1720,38 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
                 MainPanel.FRAGMENT_TAG);
 
         if (currentPanel instanceof MainPanel) {
-            MainPanel mainPanel = (MainPanel) currentPanel;
-            if (mainPanel.isCategoryPanelVisible()) {
-                if (mImageShow.hasModifications()) {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setMessage(R.string.unsaved).setTitle(
-                            R.string.save_before_exit);
-                    builder.setPositiveButton(mPopUpText,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                        int id) {
-                                    // saveImage();
-                                    HistoryManager adapter = mMasterImage
-                                            .getHistory();
-                                    adapter.resetActiveFilter();
-                                }
-                            });
-                    builder.setNegativeButton(mExit,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                        int id) {
-                                    HistoryManager adapter = mMasterImage
-                                            .getHistory();
-                                    int position = adapter.undoCurrentFilter();
-                                     mMasterImage.onHistoryItemClick(position);
-                                     adapter.resetActiveFilter();
-                                    backToMain();
-                                    invalidateViews();
-                                }
-                            });
-                    builder.show();
-                }
-                setActionBar(false);
-                mainPanel.toggleEffectsTrayVisibility(true);
-                invalidateOptionsMenu();
-                if (MasterImage.getImage().getScaleFactor() < 1)
-                    setScaleImage(false);
-                adjustCompareButton(false);
-
+            if (mImageShow.hasModifications()) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setMessage(R.string.unsaved).setTitle(
+                        R.string.save_before_exit);
+                builder.setPositiveButton(mPopUpText,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int id) {
+                                done();
+                            }
+                        });
+                builder.setNegativeButton(mExit,
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int id) {
+                                HistoryManager adapter = mMasterImage.getHistory();
+                                int position = adapter.undoCurrentFilter();
+                                mMasterImage.onHistoryItemClick(position);
+                                adapter.resetActiveFilter();
+                                backToMain();
+                                invalidateViews();
+                            }
+                        });
+                builder.show();
             } else {
-                if (!mImageShow.hasModifications()) {
-                    done();
-                } else {
-                    AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                    builder.setMessage(R.string.unsaved).setTitle(
-                            R.string.save_before_exit);
-                    builder.setPositiveButton(R.string.save_and_exit,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                        int id) {
-                                    saveImage();
-                                }
-                            });
-                    builder.setNegativeButton(R.string.exit,
-                            new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog,
-                                        int id) {
-                                    done();
-                                }
-                            });
-                    builder.show();
-                }
+                done();
             }
+            setActionBar(false);
+            invalidateOptionsMenu();
+            if (MasterImage.getImage().getScaleFactor() < 1)
+                setScaleImage(false);
+            adjustCompareButton(false);
         } else {
             isComingFromEditorScreen = true;
             backToMain();
@@ -1984,6 +1929,6 @@ public class FilterShowActivity extends FragmentActivity implements OnItemClickL
     }
 
     public void setScaleImage(boolean isScaled) {
-        mImageShow.scaleImage(isScaled,getBaseContext());
+        mImageShow.scaleImage(isScaled, getBaseContext());
     }
 }
