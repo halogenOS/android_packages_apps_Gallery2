@@ -39,9 +39,12 @@ import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.RelativeLayout;
 import android.widget.ShareActionProvider;
 import android.widget.Toast;
+import android.widget.Toolbar;
 
 import com.android.gallery3d.R;
 import com.android.gallery3d.common.ApiHelper;
@@ -207,7 +210,10 @@ public abstract class PhotoPage extends ActivityState implements
 
     private ShareActionProvider mShareActionProvider;
     private Intent mShareIntent;
-    private boolean mIsPhotoChanged = true;
+
+    //use for saving the original height and padding of toolbar
+    private int originalHeight = 0;
+    private int originalPadding = 0;
 
     private final PanoramaSupportCallback mUpdatePanoramaMenuItemsCallback = new PanoramaSupportCallback() {
         @Override
@@ -516,7 +522,6 @@ public abstract class PhotoPage extends ActivityState implements
                 public void onPhotoChanged(int index, Path item) {
                     int oldIndex = mCurrentIndex;
                     mCurrentIndex = index;
-                    mIsPhotoChanged = true;
 
                     if (mHasCameraScreennailOrPlaceholder) {
                         if (mCurrentIndex > 0) {
@@ -627,14 +632,6 @@ public abstract class PhotoPage extends ActivityState implements
     public boolean canDisplayBottomControl(int control) {
         if (mCurrentPhoto == null) {
             return false;
-        }
-        if (mIsPhotoChanged) {
-            if (mCurrentPhoto.getMediaType() == MediaObject.MEDIA_TYPE_VIDEO) {
-                mBottomControls.setSharePositionForVideo(mActivity);
-            } else {
-                mBottomControls.setSharePositionForImage();
-            }
-            mIsPhotoChanged = false;
         }
         switch (control) {
         case R.id.photopage_bottom_controls:
@@ -917,7 +914,7 @@ public abstract class PhotoPage extends ActivityState implements
         mShowBars = true;
         mOrientationManager.unlockOrientation();
         mActionBar.show();
-        mActivity.getGLRoot().setLightsOutMode(false);
+        mActivity.getGLRoot().setLightsOutMode(true);
         refreshHidingMessage();
         refreshBottomControlsWhenReady();
     }
@@ -1458,7 +1455,14 @@ public abstract class PhotoPage extends ActivityState implements
     public void onPause() {
         super.onPause();
         mIsActive = false;
-
+        //restore the orginal heigh and padding of toolbar
+        Toolbar toolbar = mActivity.getToolbar();
+        if (toolbar != null) {
+            ViewGroup.LayoutParams layoutParams = toolbar.getLayoutParams();
+            layoutParams.height = originalHeight;
+            toolbar.setLayoutParams(layoutParams);
+            toolbar.setPadding(0, originalPadding, 0, 0);
+        }
         mActivity.getGLRoot().unfreeze();
         mHandler.removeMessages(MSG_UNFREEZE_GLROOT);
 
@@ -1583,6 +1587,16 @@ public abstract class PhotoPage extends ActivityState implements
         transitionFromAlbumPageIfNeeded();
 
         mActivity.getGLRoot().freeze();
+        Toolbar toolbar = mActivity.getToolbar();
+        //set the new height and padding to toolbar
+        if (toolbar != null) {
+            ViewGroup.LayoutParams layoutParams = toolbar.getLayoutParams();
+            originalHeight = layoutParams.height;
+            originalPadding = toolbar.getPaddingTop();
+            layoutParams.height = originalHeight - originalPadding;
+            toolbar.setPadding(0, 0, 0, 0);
+            toolbar.setLayoutParams(layoutParams);
+        }
         mIsActive = true;
         setContentPane(mRootPane);
 
@@ -1602,8 +1616,9 @@ public abstract class PhotoPage extends ActivityState implements
         // }
         if (!mShowBars) {
             mActionBar.hide();
-            mActivity.getGLRoot().setLightsOutMode(true);
         }
+        //hide the status bar
+        mActivity.getGLRoot().setLightsOutMode(true);
         boolean haveImageEditor = GalleryUtils.isEditorAvailable(mActivity, "image/*");
         if (haveImageEditor != mHaveImageEditor) {
             mHaveImageEditor = haveImageEditor;
