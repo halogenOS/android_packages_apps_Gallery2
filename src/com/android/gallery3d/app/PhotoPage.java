@@ -706,15 +706,21 @@ public abstract class PhotoPage extends ActivityState implements
     private void setupNfcBeamPush() {
         if (!ApiHelper.HAS_SET_BEAM_PUSH_URIS) return;
 
-        NfcAdapter adapter = NfcAdapter.getDefaultAdapter(mActivity);
-        if (adapter != null) {
-            adapter.setBeamPushUris(null, mActivity);
-            adapter.setBeamPushUrisCallback(new CreateBeamUrisCallback() {
-                @Override
-                public Uri[] createBeamUris(NfcEvent event) {
-                    return mNfcPushUris;
-                }
-            }, mActivity);
+        try {
+            NfcAdapter adapter = NfcAdapter.getDefaultAdapter(mActivity);
+            if (adapter != null) {
+                adapter.setBeamPushUris(null, mActivity);
+                adapter.setBeamPushUrisCallback(new CreateBeamUrisCallback() {
+                    @Override
+                    public Uri[] createBeamUris(NfcEvent event) {
+                        return mNfcPushUris;
+                    }
+                }, mActivity);
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -993,6 +999,9 @@ public abstract class PhotoPage extends ActivityState implements
                             "drawer");
                     mActivity.getToolbar().setNavigationIcon(R.drawable.drawer);
                     ((GalleryActivity)mActivity).toggleNavDrawer(true);
+                    if (mModel instanceof PhotoDataAdapter) {
+                        ((PhotoDataAdapter) mModel).setDataListener(null);
+                    }
                 }
             }
         }
@@ -1396,7 +1405,8 @@ public abstract class PhotoPage extends ActivityState implements
             if (albumPath == null) {
                 return;
             }
-            if (!albumPath.equalsIgnoreCase(mOriginalSetPathString)) {
+            boolean isClusterType = FilterUtils.isClusterPath(mOriginalSetPathString);
+            if (!albumPath.equalsIgnoreCase(mOriginalSetPathString) && !isClusterType) {
                 // If the edited image is stored in a different album, we need
                 // to start a new activity state to show the new image
                 Bundle data = new Bundle(getData());

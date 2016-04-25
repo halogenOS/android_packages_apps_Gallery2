@@ -188,7 +188,7 @@ public class CodeauroraVideoView extends SurfaceView implements MediaPlayerContr
             Log.v(TAG, "onMeasure() mNeedWaitLayout=" + mNeedWaitLayout);
         }
         setMeasuredDimension(width, height);
-        if (mNeedWaitLayout) { // when OnMeasure ok, start video.
+        if (mNeedWaitLayout || mCurrentState == STATE_PREPARING) { // when OnMeasure ok, start video.
             mNeedWaitLayout = false;
             mHandler.sendEmptyMessage(MSG_LAYOUT_READY);
         }
@@ -461,7 +461,7 @@ public class CodeauroraVideoView extends SurfaceView implements MediaPlayerContr
 
     private void openVideo() {
         clearVideoInfo();
-        if (mUri == null || mSurfaceHolder == null) {
+        if (mUri == null || mSurfaceHolder == null || mTargetState == STATE_ERROR) {
             // not ready for playback just yet, will try again later
             return;
         }
