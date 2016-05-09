@@ -520,7 +520,7 @@ public class MovieActivity extends Activity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == android.R.id.home) {
-         // If click back up button, we will always finish current activity and 
+         // If click back up button, we will always finish current activity and
          // back to previous one.
             finish();
             return true;
@@ -541,9 +541,7 @@ public class MovieActivity extends Activity {
 
     @Override
     public void onStart() {
-        ((AudioManager) getSystemService(AUDIO_SERVICE))
-                .requestAudioFocus(null, AudioManager.STREAM_MUSIC,
-                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+        mPlayer.requestAudioFocus();
         super.onStart();
         mMovieHooker.onStart();
         registerScreenReceiver();
@@ -551,8 +549,7 @@ public class MovieActivity extends Activity {
 
     @Override
     protected void onStop() {
-        ((AudioManager) getSystemService(AUDIO_SERVICE))
-                .abandonAudioFocus(null);
+        mPlayer.abandonAudioFocus();
         super.onStop();
         if (mControlResumed && mPlayer != null) {
             mPlayer.onStop();
