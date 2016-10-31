@@ -70,7 +70,7 @@ public class BookmarkHooker extends MovieHooker {
         intent.addCategory(Intent.CATEGORY_DEFAULT);
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP
                 | Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY);
-        intent.putExtra(KEY_LOGO_BITMAP, getIntent().getParcelableExtra(KEY_LOGO_BITMAP));
+        //intent.putExtra(KEY_LOGO_BITMAP, getIntent().getParcelableExtra(KEY_LOGO_BITMAP));
         getContext().startActivity(intent);
     }
 }
