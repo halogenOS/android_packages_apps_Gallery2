@@ -21,6 +21,7 @@ import android.graphics.Canvas;
 import android.graphics.PorterDuff;
 import android.renderscript.Allocation;
 import android.renderscript.RenderScript;
+import android.util.Log;
 import com.android.gallery3d.filtershow.cache.BitmapCache;
 import com.android.gallery3d.filtershow.imageshow.MasterImage;
 

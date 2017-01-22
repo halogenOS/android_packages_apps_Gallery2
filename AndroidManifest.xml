@@ -24,7 +24,7 @@
 
     <original-package android:name="com.android.gallery3d" />
 
-    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="23"/>
+    <uses-sdk android:minSdkVersion="18" android:targetSdkVersion="24"/>
 
     <permission android:name="com.android.gallery3d.permission.GALLERY_PROVIDER"
             android:protectionLevel="signatureOrSystem" />
@@ -174,6 +174,7 @@
                 <data android:mimeType="image/x-ms-bmp" />
                 <data android:mimeType="image/x-MS-bmp" />
                 <data android:mimeType="image/vnd.wap.wbmp" />
+                <data android:mimeType="image/*" />
                 <data android:mimeType="application/vnd.google.panorama360+jpg" />
             </intent-filter>
             <intent-filter>
