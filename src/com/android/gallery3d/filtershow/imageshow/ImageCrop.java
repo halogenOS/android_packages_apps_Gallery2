@@ -261,6 +261,7 @@ public class ImageCrop extends ImageShow {
         if (!mValidDraw || bitmap == null) {
             return;
         }
+        toggleComparisonButtonVisibility();
         forceStateConsistency();
         mImageBounds.set(0, 0, bitmap.getWidth(), bitmap.getHeight());
         // If display matrix doesn't exist, create it and its dependencies
@@ -289,8 +290,8 @@ public class ImageCrop extends ImageShow {
                     CropObject.MOVE_LEFT,
                     CropObject.MOVE_RIGHT};
             int delta = Math.min(canvas.getWidth(), canvas.getHeight()) / 4;
-            int[] dy = {delta, -delta, 0, 0};
-            int[] dx = {0, 0, delta, -delta};
+            int[] dx = {delta, -delta, 0, 0};
+            int[] dy = {0, 0, delta, -delta};
 
             for (int i = 0; i < sides.length; i++) {
                 mCropObj.selectEdge(sides[i]);
