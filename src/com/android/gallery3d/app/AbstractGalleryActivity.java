@@ -28,15 +28,20 @@ import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.IBinder;
+import android.os.storage.StorageManager;
+import android.preference.PreferenceManager;
 import android.support.v4.print.PrintHelper;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.Toolbar;
 
 import com.android.gallery3d.R;
 import com.android.gallery3d.common.ApiHelper;
@@ -45,6 +50,7 @@ import com.android.gallery3d.data.MediaItem;
 import com.android.gallery3d.filtershow.cache.ImageLoader;
 import com.android.gallery3d.ui.GLRoot;
 import com.android.gallery3d.ui.GLRootView;
+import com.android.gallery3d.util.MediaSetUtils;
 import com.android.gallery3d.util.PanoramaViewHelper;
 import com.android.gallery3d.util.ThreadPool;
 import com.android.photos.data.GalleryBitmapPool;
@@ -60,6 +66,7 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
     private TransitionStore mTransitionStore = new TransitionStore();
     private boolean mDisableToggleStatusBar;
     private PanoramaViewHelper mPanoramaViewHelper;
+    private Toolbar mToolbar;
 
     private AlertDialog mAlertDialog = null;
     private BroadcastReceiver mMountReceiver = new BroadcastReceiver() {
@@ -70,15 +77,32 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
     };
     private IntentFilter mMountFilter = new IntentFilter(Intent.ACTION_MEDIA_MOUNTED);
 
+    private static final String DEFAULT_PRINT_JOB_NAME = "print job";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setStoragePath();
         mOrientationManager = new OrientationManager(this);
-        toggleStatusBarByOrientation();
         getWindow().setBackgroundDrawable(null);
         mPanoramaViewHelper = new PanoramaViewHelper(this);
         mPanoramaViewHelper.onCreate();
         doBindBatchService();
+    }
+
+    private void setStoragePath() {
+        final String defaultStoragePath = Environment.getExternalStorageDirectory().toString();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        String storagePath = prefs.getString(StorageChangeReceiver.KEY_STORAGE,
+                defaultStoragePath);
+
+        // Check if volume is mounted
+        StorageManager sm = (StorageManager) getSystemService(Context.STORAGE_SERVICE);
+        if (!sm.getVolumeState(storagePath).equals(Environment.MEDIA_MOUNTED)) {
+            storagePath = defaultStoragePath;
+        }
+
+        MediaSetUtils.setRoot(storagePath);
     }
 
     @Override
@@ -98,7 +122,6 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
         mStateManager.onConfigurationChange(config);
         getGalleryActionBar().onConfigurationChanged();
         invalidateOptionsMenu();
-        toggleStatusBarByOrientation();
     }
 
     @Override
@@ -131,6 +154,15 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
 
     public GLRoot getGLRoot() {
         return mGLRootView;
+    }
+
+    public void GLRootResume(boolean isResume) {
+        if (isResume) {
+            mGLRootView.onResume();
+            mGLRootView.lockRenderThread();
+        } else {
+            mGLRootView.unlockRenderThread();
+        }
     }
 
     public OrientationManager getOrientationManager() {
@@ -287,18 +319,6 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
         mDisableToggleStatusBar = true;
     }
 
-    // Shows status bar in portrait view, hide in landscape view
-    private void toggleStatusBarByOrientation() {
-        if (mDisableToggleStatusBar) return;
-
-        Window win = getWindow();
-        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        } else {
-            win.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        }
-    }
-
     public TransitionStore getTransitionStore() {
         return mTransitionStore;
     }
@@ -351,18 +371,52 @@ public class AbstractGalleryActivity extends Activity implements GalleryContext 
         if (uri == null) {
             return;
         }
-        String path = ImageLoader.getLocalPathFromUri(this, uri);
-        if (path != null) {
-            Uri localUri = Uri.parse(path);
-            path = localUri.getLastPathSegment();
-        } else {
-            path = uri.getLastPathSegment();
+        String printJobName = getLastPathSegment(uri);
+        if (printJobName == null) {
+            printJobName = DEFAULT_PRINT_JOB_NAME;
         }
         PrintHelper printer = new PrintHelper(this);
         try {
-            printer.printBitmap(path, uri);
+            printer.printBitmap(printJobName, uri);
         } catch (FileNotFoundException fnfe) {
             Log.e(TAG, "Error printing an image", fnfe);
         }
     }
+
+    private String getLastPathSegment(Uri uri) {
+        if (uri == null) return null;
+        String path = null;
+        try {
+            path = ImageLoader.getLocalPathFromUri(this, uri);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+
+        Uri localUri;
+        if (path != null) {
+            localUri = Uri.parse(path);
+        } else {
+            path = uri.getPath();
+            localUri = uri;
+        }
+
+        String lastPathSegment = localUri.getLastPathSegment();
+
+        // uri.getLastPathSegment will return null if localUri contains
+        // spacial characters such as ':', so use other way to get it.
+        if (lastPathSegment == null) {
+            // use substring to get last path segment.
+            int indexOfLastPathSegment = path.lastIndexOf("/") + 1;
+            lastPathSegment = path.substring(indexOfLastPathSegment, path.length());
+        }
+        return lastPathSegment;
+    }
+
+   public Toolbar getToolbar() {
+       return mToolbar;
+   }
+
+   public void setToolbar(Toolbar toolbar) {
+       mToolbar = toolbar ;
+   }
 }

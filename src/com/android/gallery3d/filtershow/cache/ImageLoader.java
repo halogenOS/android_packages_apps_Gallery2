@@ -88,8 +88,7 @@ public final class ImageLoader {
             return null;
         }
         int index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(index);
+        return cursor.moveToFirst() ? cursor.getString(index) : null;
     }
 
     /**
@@ -147,6 +146,8 @@ public final class ImageLoader {
             return parseExif(exif);
         } catch (IOException e) {
             Log.w(LOGTAG, "Failed to read EXIF orientation", e);
+        } catch (NullPointerException e) {
+            Log.w(LOGTAG, "Invalid EXIF data", e);
         } finally {
             try {
                 if (is != null) {
@@ -576,6 +577,8 @@ public final class ImageLoader {
                 return taglist;
             } catch (IOException e) {
                 Log.w(LOGTAG, "Failed to read EXIF tags", e);
+            } catch (NullPointerException e) {
+                Log.e(LOGTAG, "Failed to read EXIF tags", e);
             }
         }
         return null;
